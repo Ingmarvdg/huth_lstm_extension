@@ -6,7 +6,7 @@ import torch.nn as nn
 
 from typing import List
 from torch.utils.data import Dataset, DataLoader, random_split
-from os import path
+from os import path, listdir
 
 class StoriesDataset(Dataset):
     def __init__(self, data_path, word_embedding):
@@ -205,7 +205,7 @@ class LSTMWordpred(nn.Module):
                 out = self(local_seq)
                 # print(out.shape)
 
-                loss = loss_function(out, local_tar, torch.ones(self.embedding_dim, 1))
+                loss = loss_function(out, local_tar)
                 loss.backward()
                 opt.step()
 
@@ -222,7 +222,7 @@ class LSTMWordpred(nn.Module):
                     local_tar = torch.squeeze(local_tar.float(), dim=1).to(device)
 
                     out = self(local_seq)
-                    loss = loss_function(out, local_tar, torch.ones(self.embedding_dim, 1))
+                    loss = loss_function(out, local_tar)
                     val_loss += loss.item()
                     i += 1
 
@@ -245,3 +245,22 @@ class LSTMWordpred(nn.Module):
             outputs.append(output[:, -1, :])
 
         return outputs
+
+
+def load_models(model, pretrained_weights_dir):
+    models = {}
+    for filename in listdir(pretrained_weights_dir):
+        if filename.endswith(".pth"):
+            model.load_state_dict(torch.load(path.join(pretrained_weights_dir, filename)))
+            model.eval()
+
+            modelname = filename[:-4]
+
+            models[modelname] = model
+
+        print(f'Loaded model weights of {filename} into {modelname}')
+
+    return models
+
+
+
